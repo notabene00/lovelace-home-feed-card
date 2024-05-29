@@ -13,12 +13,12 @@ console.info(
 		`%c  HOME-FEED-CARD \n%c  Version ${CARD_VERSION}    `,
 		'color: orange; font-weight: bold; background: black',
 		'color: white; font-weight: bold; background: dimgray',
-		);
+);
 
 class HomeFeedCard extends LitElement {
     constructor() {
 		super();
-		
+
 		this.pageId = location.pathname.replace(/\//g,"_");
 		this.configuredScrollbars = false;
 		this.loadedNotifications = false;
@@ -29,38 +29,42 @@ class HomeFeedCard extends LitElement {
 		if(this.browser_language == "hy") this.browser_language = "hy-am"; // "hy" (Armenian) wrongly maps to zh-tw (Taiwan Chinese)
 		this.moment.locale(this.browser_language);
 		this.preloadElementsIfNeeded();
-  	}
-  	
+	}
+
+	async renderTemplate(template, variables = {}) {
+		return this._hass.callApi("POST", "template", { template: template, variables: variables });
+	}
+
   	connectedCallback() {
   		super.connectedCallback();
-		
+
 		window.hassConnection.then(c => {
 			this._unsubNotifications = subscribeNotifications(c.conn, () => {
    				this.refreshNotifications().then(() => {});
      		}, "persistent_notifications_updated");
-     		
+
      		if(this._hass){
      			this.refreshNotifications().then(() => {});
      			this.requestUpdate();
      		}
 		});
 	}
-	
+
 	disconnectedCallback() {
   		if (this._unsubNotifications) {
   			this._unsubNotifications();
   			this._unsubNotifications = undefined;
     	}
-    	
+
   		super.disconnectedCallback();
 	}
-	
+
 	static get properties() { return {
     	_config: { type: Object },
     	hass: { type: Object }
   		};
   	}
-	
+
 	get pageRoot() {
 		let root = document.querySelector("home-assistant");
 		root = root && root.shadowRoot;
@@ -71,12 +75,12 @@ class HomeFeedCard extends LitElement {
     	root = root && root.querySelector('ha-panel-lovelace');
     	root = root && root.shadowRoot;
     	root = root && root.querySelector('hui-root');
-    	
+
     	return root;
 	}
-	
-	
-	
+
+
+
 	static get styles() {
 		return css`
 				ha-card {
@@ -85,7 +89,7 @@ class HomeFeedCard extends LitElement {
 				#notifications {
 					margin: -4px 0;
 				}
-		
+
 				#notifications > * {
 					margin: 8px 0;
 				}
@@ -93,7 +97,7 @@ class HomeFeedCard extends LitElement {
 					overflow: hidden;
 					padding-right: 1em;
 				}
-				
+
 				.item-container {
 					width: 100%;
 					height: auto;
@@ -104,7 +108,7 @@ class HomeFeedCard extends LitElement {
 					display: inline-block;
 					vertical-align:top;
 				}
-				
+
 				.item-left, .item-right {
 					width: 20px;
 					height: 100%;
@@ -114,21 +118,21 @@ class HomeFeedCard extends LitElement {
 				.rtl {
 					float: right;
 				}
-				
+
 				.item-right ha-icon {
 					cursor:pointer;
 				}
-				
+
 				.item-content {
 					overflow: auto;
 					height: 100%;
 				}
-				
+
 				state-badge {
 					margin-top: -5px;
 					margin-left: -5px;
 				}
-				
+
 				.item-content ha-markdown p {
 					margin-top: 0px;
 				}
@@ -152,22 +156,22 @@ class HomeFeedCard extends LitElement {
 				#notifications hr:last-child {
 					display: none;
 				}
-				
+
 				ha-markdown a {
         			color: var(--primary-color);
   				}
-  				
+
   				ha-markdown img {
                   max-width: 100%;
                 }
-                
+
                 ha-markdown {
                 	max-width: 100%;
                 }
 				ha-markdown.compact {
 					max-width: 65%;
 				}
-				
+
 				ha-markdown.compact p {
 					max-width: 100%;
     				white-space: nowrap;
@@ -179,7 +183,7 @@ class HomeFeedCard extends LitElement {
 	async updated(changedProperties) {
 		if(!this.configuredScrollbars){
 			var root = this.shadowRoot.querySelector("ha-card #notifications");
-			if(root && this._config){	
+			if(root && this._config){
 	  			if(this._config.scrollbars_enabled !== false || this._config.max_height){
 	  				root.style.maxHeight = this._config.max_height ? this._config.max_height : "28em";
 	  				root.style.overflow = this._config.scrollbars_enabled !== false ? "auto" : "hidden";
@@ -190,35 +194,35 @@ class HomeFeedCard extends LitElement {
 	}
 	renderHeaderFooter(conf, className){
     	if(!window.cardHelpers) return html``;
-    	
+
     	const element = window.cardHelpers.createHeaderFooterElement(conf);
-    	
+
     	if (this._hass) {
       		element.hass = this._hass;
     	}
-    	
+
     	return html` <div class=${"header-footer " + className}>${element}</div> `;
   	}
-  
+
 	render() {
 		if(!this._hass || !this.moment){
 			return html``;
-		} 
+		}
 		else{
 			if(this.feedContent != null){
 				if(this.feedContent.length === 0 && this._config.show_empty === false){
 					this.style.display = "none";
-					
+
 					return html``;
 				}
 				else{
 				this.style.display = "block";
-				
+
 				return html`
 				<ha-card id="card">
 					${this._config.header
           				? this.renderHeaderFooter(this._config.header, "header")
-          				: ""}
+          				: ''}
 					${!this._config.title
 					? html``
 					: html`
@@ -232,12 +236,12 @@ class HomeFeedCard extends LitElement {
           				: ""}
 				</ha-card>
 			`;
-			
+
 					}
 			}
 			else{
 				this.style.display = "none";
-				
+
 				return html``;
 			}
 		}
@@ -245,12 +249,12 @@ class HomeFeedCard extends LitElement {
 	get cacheId() {
 		return this._config.card_id ? this._config.card_id : this.pageId + this._config.title;
 	}
-	
+
 	get inEditMode() {
 		let parentNodeName = this.parentElement && this.parentElement.nodeName;
 		return parentNodeName == "HUI-CARD-PREVIEW";
 	}
-	
+
     clearCache() {
     	localStorage.removeItem('home-feed-card-events' + this.cacheId);
 	 	localStorage.removeItem('home-feed-card-eventsLastUpdate' + this.cacheId);
@@ -258,7 +262,7 @@ class HomeFeedCard extends LitElement {
 	 	localStorage.removeItem('home-feed-card-notificationsLastUpdate' + this.cacheId);
 	 	localStorage.removeItem('home-feed-card-history' + this.cacheId);
     }
-    
+
     async setConfig(config) {
 	  if(!config)
       	throw new Error("Invalid configuration");
@@ -266,24 +270,24 @@ class HomeFeedCard extends LitElement {
       this.entities = this.processConfigEntities(this._config.entities);
       this.calendars = this._config.calendars;
       this.oldStates = {};
-      
+
       if(!this.inEditMode)
       {
       	console.log("Clearing Cache");
       	this.clearCache();
       }
-      
+
 	  await this.preloadElementsIfNeeded();
-	  	
+
 	  setTimeout(() => this.buildIfReady(), 10);
 	}
-  
+
   preloadElement(name, config){
   	if (!customElements.get(name)) {
 		createCard(config);
 	}
   }
-  
+
   preloadElementsIfNeeded() {
   	// Preload required elements if not available
   	this.preloadElement("ha-markdown", {"type": "markdown", "content": "**dummy Markdown card**"});
@@ -291,14 +295,14 @@ class HomeFeedCard extends LitElement {
 	this.preloadElement("hui-history-graph-card", {"type": "history-graph", "entities": []});
 	this.preloadElement("hui-logbook-card", {"type": "logbook", "entities": []});
   }
-  
+
   processConfigEntities(entities) {
   		if(!entities) return [];
-  		
+
   		if (!Array.isArray(entities)) {
     		throw new Error("Entities need to be an array");
   		}
-  		
+
 		return entities.map((entityConf, index) => {
 			if (typeof entityConf === "string") {
       			entityConf = { entity: entityConf, exclude_states: ["unknown"] };
@@ -308,7 +312,7 @@ class HomeFeedCard extends LitElement {
           				`Entity object at position ${index} is missing entity field.`
         			);
         		 }
-        		 
+
         		 if(!entityConf.exclude_states){
         		 	entityConf = { ...entityConf, exclude_states: ["unknown", null]};
         		 }
@@ -318,112 +322,86 @@ class HomeFeedCard extends LitElement {
 			return entityConf;
   		});
 	}
-  
+
   computeStateDisplay(stateObj, entityConfig){
   	let domain = entityConfig.entity.split('.')[0];
-  	
-  	if(entityConfig.attribute) {
-  		return stateObj.attributes[entityConfig.attribute];
-  	}
-  	
+
   	if(domain == "automation"){
   		return "Triggered";
   	}
-  	
+
   	var state = entityConfig.state_map && entityConfig.state_map[stateObj.state] ? entityConfig.state_map[stateObj.state] : null;
-  	
+
   	if(!state){
-  		state = versionGreaterOrEqual(this.hass_version, "0.109.0") 
-  			? computeStateDisplayHelper(this._hass.localize, stateObj) 
+  		state = versionGreaterOrEqual(this.hass_version, "0.109.0")
+  			? computeStateDisplayHelper(this._hass.localize, stateObj)
   			: computeStateDisplayLegacy(this._hass.localize, stateObj);
   	}
-  	
+
   	return state;
   }
-  
+
   getIcon(stateObj, icon){
-	
+
 	if(icon) {
 		return icon;
 	}
-	
+
 	if(stateObj && stateObj.attributes && stateObj.attributes.icon)
 	{
 		return stateObj.attributes.icon
 	}
-	
+
   	return icon;
   }
-  
+
   getEntities() {
   		let data = this.entities.filter(i => i.multiple_items !== true && i.include_history !== true).map(i => {
   		let stateObj = this._hass.states[i.entity];
-  		
+
   		if(stateObj == null) {
   			return { entity_id: i.entity, icon: null, entity: i.entity, display_name: this._hass.localize(
             "ui.panel.lovelace.warning.entity_not_found",
             "entity",
             i.entity
-          	), more_info_on_tap: false, 
+          	), more_info_on_tap: false,
           	content_template: null, state: "unavailable", stateObj: null, item_type: "unavailable",   };
   		}
   		let domain = i.entity.split(".")[0];
-  		if(!i.exclude_states.includes(stateObj.state) 
+  		if(!i.exclude_states.includes(stateObj.state)
   		&& (domain != "automation" || stateObj.attributes.last_triggered) // Exclude automations which have never been triggered
   		)
   		{
-  			return { ...stateObj, icon: this.getIcon(stateObj, i.icon), entity: i.entity, display_name: ((i.name) ? i.name : stateObj.attributes.friendly_name), format: (i.format != null ? i.format : "relative"), more_info_on_tap: i.more_info_on_tap, content_template: i.content_template, state: this.computeStateDisplay(stateObj, i), stateObj: stateObj, item_type: "entity",   };
-	 	}
-	 	else{
+				return { ...i, ...stateObj, icon: this.getIcon(stateObj, i.icon), entity: i.entity, display_name: ((i.name) ? i.name : stateObj.attributes.friendly_name), format: (i.format != null ? i.format : "relative"), more_info_on_tap: i.more_info_on_tap, content_template: i.content_template, state: this.computeStateDisplay(stateObj, i), stateObj: stateObj, item_type: "entity",   };
+	 	}else {
 	 		return null;
 	 	}
 	 	});
-	 	
+
 	 	return data.filter(entity => entity != null);
 	}
-  
-  applyTemplate(item, template, translateToJinja = false){
-  	var result = template;
-  	
-  	// If the item is just a string (e.g. Todoist calendar as a multi-item entity) convert to an object with a key of "value"
-  	
-  	if(typeof item === "string") item = {value: item};
-  	
-  	Object.keys(item).forEach(p => {
-  		result = result.replace("{{" + p + "}}", translateToJinja ? "{{ config.item." + p + " }}" : item[p]);
-  	});
-  	
-  	if(item.attributes)
-  	{
-  		Object.keys(item.attributes).forEach(p => {
-  			result = result.replace("{{" + p + "}}", item.attributes[p]);
-  		});
-  	}
-  	
-  	return result;
-  }
-  
+
   getMultiItemEntities() {
   		let data = this.entities.filter(i => i.multiple_items === true && i.list_attribute && i.content_template).map(i =>{
   			let stateObj = this._hass.states[i.entity];
-  			
+
   			if(!stateObj) return []; // return empty list for this entity if it does not exist (yet)
-  			
+
   			let icon = this.getIcon(stateObj, i.icon)
-  			
+
   			let items = (stateObj.attributes[i.list_attribute]) ? stateObj.attributes[i.list_attribute] : [];
-  			
+
   			return items.map(p => {
   				let created = (i.timestamp_property && p[i.timestamp_property]) ? p[i.timestamp_property] : stateObj.last_changed;
   				let timeStamp = isNaN(created) ? created : new Date(created * 1000);
-  				return { ...stateObj, icon: icon, format: (i.format != null ? i.format : "relative"), entity: i.entity, display_name: this.applyTemplate(p, i.content_template), last_changed: timeStamp, stateObj: stateObj, more_info_on_tap: i.more_info_on_tap, item_data: p, detail: i.detail_template ? this.applyTemplate(p, i.detail_template, false) : null,  item_type: "multi_entity",   };
+  				return { ...stateObj, icon: icon, format: (i.format != null ? i.format : "relative"), entity: i.entity, display_name: i.content_template, last_changed: timeStamp, stateObj: stateObj, more_info_on_tap: i.more_info_on_tap, item_data: p, detail: i.detail_template,  item_type: "multi_entity",   };
   			}).sort((a, b) => (a.last_changed < b.last_changed) ? 1 : -1) // Sort in reverse order of time to ensure latest items always first
   			.slice(0, (i.max_items) ? i.max_items : 5);
   		});
-	 	
+
 	 	return [].concat.apply([], data);
 	}
-  
+
   getHistoryState(stateObj, item){
   	var newStateObj = {};
   	Object.assign(newStateObj, stateObj);
@@ -433,10 +411,10 @@ class HomeFeedCard extends LitElement {
   	newStateObj.last_updated = item.last_updated;
   	return newStateObj;
   }
-  
+
   repeatFilter(item, index, arr, remove_repeats, keep_latest){
   	if(!remove_repeats) return true;
-  	
+
   	var repeated = (arr[index-1] && item.state == arr[index-1].state);
   	if(!repeated || (keep_latest === true && index == arr.length - 1)){
   		// Not repeated or keep latest option is enabled and this is the latest
@@ -449,19 +427,19 @@ class HomeFeedCard extends LitElement {
 
   async getLiveEntityHistory() {
   	var entity_ids = this.entities.filter(i => i.include_history == true).map(i => i.entity).join();
-  	
+
   	if(!entity_ids || entity_ids.length == 0) return []; // Don't need to call history API if there are no items requiring history
   	let historyDaysBack = (this._config.history_days_back ? this._config.history_days_back : 0);
 	const start = this.moment().startOf('day').add(-historyDaysBack, 'days').utc().format("YYYY-MM-DDTHH:mm:ss");
     const end = this.moment.utc().format("YYYY-MM-DDTHH:mm:ss");
-    
+
     try{
   			let history = (await this._hass.callApi('get', `history/period/${start}Z?end_time=${end}Z&filter_entity_id=${entity_ids}`))
   	              .map(arr => {
   				let entityConfig = this.entities.find(entity => entity.entity == arr[0].entity_id);
   				let stateObj = this._hass.states[entityConfig.entity];
   				if(!stateObj) return []; // return empty list if entity does not exist (yet)
-  				
+
   				let remove_repeats = entityConfig.remove_repeats !== false;
   				return arr.filter(i => !entityConfig.exclude_states.includes(i.state))
   			  			  .filter((item,index,arr) => { return this.repeatFilter(item, index, arr, remove_repeats, entityConfig.keep_latest) })
@@ -471,7 +449,7 @@ class HomeFeedCard extends LitElement {
   			  			  	return { ...i, icon: this.getIcon(i, entityConfig.icon), display_name: ((entityConfig.name) ? entityConfig.name : i.attributes.friendly_name), format: (entityConfig.format != null ? entityConfig.format : "relative"), more_info_on_tap: entityConfig.more_info_on_tap, content_template: entityConfig.content_template, state: this.computeStateDisplay(i,entityConfig), latestStateObj: stateObj,  stateObj: this.getHistoryState(stateObj,i), item_type: "entity_history",   };
   			  			  });
   			  	 });
-  			  	 
+
   			  	 return [].concat.apply([], history);
   	}
   	catch(err){
@@ -479,12 +457,12 @@ class HomeFeedCard extends LitElement {
   		return [];
   	}
   }
-  
+
   haveHistoryEntitiesChanged(){
   	var entity_ids = this.entities.filter(i => i.include_history == true).map(i => i.entity);
-  	
+
   	if(!entity_ids) return false;
-  	
+
   	for(const entity_id of entity_ids) {
     	let oldState = this.oldStates[entity_id];
 		if(oldState == null) oldState = {"state":"undefined"};
@@ -496,7 +474,7 @@ class HomeFeedCard extends LitElement {
     }
     return false;
 }
-  
+
   async refreshEntityHistory() {
   	if(!this._config.entities || this._config.entities.length == 0){
   		// Remove cached history items if there are no entities
@@ -505,25 +483,25 @@ class HomeFeedCard extends LitElement {
   		}
   		return;
   	}
-  	
+
   	let entityHistory = await this.getLiveEntityHistory();
   	localStorage.setItem('home-feed-card-history' + this.cacheId, JSON.stringify(entityHistory));
-  	
+
 	this.buildIfReady();
   }
-  
+
   eventTime(eventTime)
    {
-		return ((eventTime.date) ? eventTime.date : (eventTime.dateTime) ? eventTime.dateTime : eventTime);   	
+		return ((eventTime.date) ? eventTime.date : (eventTime.dateTime) ? eventTime.dateTime : eventTime);
    }
-   
+
    eventAllDay(event){
    		var allDay = false;
    		if(event.start.date){
 				allDay = true;
 		}
 		else if(event.start.dateTime){
-			allDay = false;	
+			allDay = false;
 		}
 		else{
 			let start = this.moment(event.start);
@@ -531,10 +509,10 @@ class HomeFeedCard extends LitElement {
 			let diffInHours = end.diff(start, 'hours');
 			allDay = (diffInHours >= 24);
 		}
-		
+
 		return allDay;
    }
-   
+
   async getEvents() {
 	if(!this.calendars || this.calendars.length == 0) return [];
 	let lastUpdate = JSON.parse(localStorage.getItem('home-feed-card-eventsLastUpdate' + this.cacheId));
@@ -556,12 +534,12 @@ class HomeFeedCard extends LitElement {
         	console.error("Error getting calendar events");
         	var calendars = [];
         }
-        
+
     	var events = [].concat.apply([], calendars);
     	var data = events.map(i => {
 	 		let calendarObject = this._hass.states[i.calendar];
 	 		if(!calendarObject) return []; // If calendar entity does not exist return empty list
-	 		
+
 	 		let event = { ...i, display_name: i.summary ? i.summary : i.title, start_time: this.eventTime(i.start), end_time: this.eventTime(i.end), all_day: this.eventAllDay(i), format: this._config.calendar_time_format ? this._config.calendar_time_format : "relative", item_type: "calendar_event" };
 	 		let startDateTime = this.moment(new Date(event.start_time));
 	 		let endDateTime = this.moment(new Date(event.end_time));
@@ -593,7 +571,7 @@ class HomeFeedCard extends LitElement {
 	 				}
 	 				else{
 	 					eventTime = `${startDateTime.format("dddd, D MMMM")}  ⋅ ${startDateTime.format("h:mm a")} - ${endDateTime.format("h:mm a")}`;
-	 				}		
+	 				}
 	 			}
 	 			else
 	 			{
@@ -601,12 +579,12 @@ class HomeFeedCard extends LitElement {
 	 			}
 	 		}
 	 		event.detail = `<ha-icon icon="mdi:clock"></ha-icon> ${eventTime}
-	 		
+
  <ha-icon icon="mdi:calendar"></ha-icon> ${calendarObject.attributes["friendly_name"]}
 	 		`;
 	 		return event;
 	 	});
-	 	
+
 	 	localStorage.setItem('home-feed-card-events' + this.cacheId,JSON.stringify(data));
 	 	localStorage.setItem('home-feed-card-eventsLastUpdate' + this.cacheId,JSON.stringify(this.moment()));
 	 	return data;
@@ -618,13 +596,13 @@ class HomeFeedCard extends LitElement {
    notificationIdToTitle(id) {
 			return id.replace(/[^a-zA-Z0-9]/g," ").toLowerCase().replace(/\b(\w)/g, s => s.toUpperCase());
    }
-   
+
    async refreshNotifications() {
    	 if(!this._hass) return;
-     
-     
+
+
      if(this.refreshingNotifications) return;
-     
+
    	 this.refreshingNotifications = true;
      var response = await this._hass.callWS({type: 'persistent_notification/get'});
      if(this._config.id_filter) {
@@ -634,27 +612,27 @@ class HomeFeedCard extends LitElement {
 	 	return { ...i, title: i.title ? i.title: this.notificationIdToTitle(i.notification_id), format: "relative", item_type: "notification", original_notification: i };
 	 });
 	 localStorage.setItem('home-feed-card-notifications' + this.cacheId,JSON.stringify(data));
-	 
+
 	 if(this.moment){
 	 	localStorage.setItem('home-feed-card-notificationsLastUpdate' + this.cacheId,JSON.stringify(this.moment()));
 	 }
-	 
+
 	 this.refreshingNotifications = false;
 	 this.loadedNotifications = true;
 	 this.buildIfReady();
    }
-   
+
    getNotifications() {
    	 if(!JSON.parse(localStorage.getItem('home-feed-card-notifications' + this.cacheId))) return [];
-   	 
+
      return JSON.parse(localStorage.getItem('home-feed-card-notifications' + this.cacheId));
    }
-   
+
    async getEntityHistoryItems() {
    	if(!JSON.parse(localStorage.getItem('home-feed-card-history' + this.cacheId))) return [];
    	return JSON.parse(localStorage.getItem('home-feed-card-history' + this.cacheId));
    }
-   
+
    getItemTimestamp(item)
    {
 		switch(item.item_type)
@@ -665,13 +643,16 @@ class HomeFeedCard extends LitElement {
     				return item.start_time;
     			case "entity":
     			case "entity_history":
-    			case "multi_entity":
+			case "multi_entity":
+				if (item.attribute) {
+					return item.attributes[item.attribute];
+				}
     				if(item.attributes.device_class === "timestamp"){
     					return item.state;
     				}
     				else{
     					let domain = item.entity_id.split('.')[0];
-    					
+
     					if(domain == "automation")
     					{
     						return item.attributes.last_triggered;
@@ -679,13 +660,13 @@ class HomeFeedCard extends LitElement {
     					else{
     						return (item.attributes.last_changed ? item.attributes.last_changed : item.last_changed);
     					}
-    					
+
     				}
     			default:
     				return new Date().toISOString();
     		}
    }
-   
+
    debugItem(){
    		if(!this._config.debug) return [];
    		let cachedHistory = localStorage.getItem('home-feed-card-history' + this.cacheId);
@@ -694,63 +675,85 @@ class HomeFeedCard extends LitElement {
    						"**Cache Status:** " + (cachedHistory ? "From Cache" : "Live") + "\n\n"+
    						"**Language (Home Assistant):** " + (this._hass ? this._hass.language : "unknown") + "\n\n"+
    						"**Language (Browser):** " + (this.browser_language ? this.browser_language : "unknown");
-   		
-   		return [{ 	state: "on", 
+
+   		return [{ 	state: "on",
    					attributes: {device_class: "debug"},
-   					icon: "mdi:bug", 
-   					format: "relative", 
-   					entity_id: "home_feed.debug_info", 
-   					entity: "home_feed.debug_info", 
-   					display_name: debugData, 
-   					last_changed: new Date(), 
-   					stateObj: null, 
-   					more_info_on_tap: true, 
-   					item_data: null, 
+   					icon: "mdi:bug",
+   					format: "relative",
+   					entity_id: "home_feed.debug_info",
+   					entity: "home_feed.debug_info",
+   					display_name: debugData,
+   					last_changed: new Date(),
+   					stateObj: null,
+   					more_info_on_tap: true,
+   					item_data: null,
    					detail: debugData,
    					content_template: "{{display_name}}",
-   					item_type: "entity"   
+   					item_type: "entity"
    				}];
    }
-   async getFeedItems(){
-   		var allItems = [].concat .apply([], await Promise.all([this.debugItem(), this.getNotifications(), this.getEvents(), this.getEntities(), this.getMultiItemEntities(), this.getEntityHistoryItems()]));
-   		var now = new Date();
-   		allItems = allItems.map(item => {
-   			let timeStamp = this.getItemTimestamp(item);
-   			let tsDate = new Date(timeStamp);
-   			let diff = ((now - tsDate) / 1000);
-    		return {...item, timestamp: timeStamp, timeDifference: { value: diff, abs: Math.abs(diff), sign: Math.sign(diff) } }; 
+	async getFeedItems() {
+		let now = new Date();
+	   var allItems = (await Promise.all([
+		   this.debugItem(),
+		   this.getNotifications(),
+		   this.getEvents(),
+		   this.getEntities(),
+		   this.getMultiItemEntities(),
+		   this.getEntityHistoryItems()
+	   ])).flat()
+		allItems = await Promise.all(allItems.map(async item => {
+			if (item.attribute) {
+				item.attribute = await this.renderTemplate(item.attribute, { entity: item.entity });
+			}
+			let timeStamp = this.getItemTimestamp(item);
+			if (item.content_template) {
+				item.content_template = await this.renderTemplate(item.content_template, { entity: item.entity, attribute: item.attribute });
+			}
+			if (item.detail_template) {
+				item.detail_template = await this.renderTemplate(item.detail_template, { entity: item.entity, attribute: item.attribute });
+			}
+			if (item.icon) {
+				item.icon = await this.renderTemplate(item.icon, { entity: item.entity, attribute: item.attribute });
+			}
+			if (item.hasOwnProperty('condition')) {
+				item.condition = (await this.renderTemplate(item.condition, { entity: item.entity })) === 'True';
+			} else {
+				item.condition = true;
+			}
+			let tsDate = new Date(timeStamp);
+			let diff = ((now - tsDate) / 1000);
+			return { ...item, timestamp: timeStamp, timeDifference: { value: diff, abs: Math.abs(diff), sign: Math.sign(diff) } };
+		}));
+			allItems = allItems.filter(item => item.condition);
+		return allItems.sort((a, b) => {
+   			if (a.timeDifference.value < b.timeDifference.value) return 1;
+  			if (a.timeDifference.value > b.timeDifference.value) return -1;
+  			return 0;
    		});
-   		
-   		var sorted = allItems.sort((a,b) => {
-   			if (a.timeDifference.abs < b.timeDifference.abs) return -1;
-  			if (a.timeDifference.abs > b.timeDifference.abs) return 1;
-  			return 0;	
-   		});
-   		
-   		return sorted;
    }
-   
+
    _handleDismiss(event) {
    var id = event.target.notificationId;
     this._hass.callService("persistent_notification", "dismiss", {
       notification_id: id
-    });   
+    });
   }
-  
+
   _moreInfoHeaderClick(event) {
    let moreInfo = document.querySelector("home-assistant")._moreInfoEl;
    moreInfo.large = !moreInfo.large;
   }
-  
+
   provideHass(element) {
 	if(document.querySelector('hc-main'))
     	return document.querySelector('hc-main').provideHass(element);
 	if(document.querySelector('home-assistant'))
 		return document.querySelector("home-assistant").provideHass(element);
-	
+
 	return undefined;
   }
- 
+
   fireEvent(ev, detail, entity=null) {
     ev = new Event(ev, {
       bubbles: true,
@@ -776,11 +779,11 @@ class HomeFeedCard extends LitElement {
       if (root) root.dispatchEvent(ev);
     }
   }
-  
+
   moreInfo(entity) {
     this.fireEvent("hass-more-info", {entityId: entity});
   }
-  
+
   findPopUpCard(cardType){
   	let root = document.querySelector("home-assistant");
   	root = root && root.shadowRoot;
@@ -789,30 +792,30 @@ class HomeFeedCard extends LitElement {
   	root = root && root.querySelector("ha-dialog");
   	return root.querySelector(cardType);
   }
-  
+
   _handleClick(ev) {
   		let item = ev.currentTarget.item;
-  		
+
   		if(item.item_type == "entity_history")
   		{
   			let mock_hass = {};
   			Object.assign(mock_hass, this._hass);
   			mock_hass.states = [];
   			mock_hass.states[item.entity_id] = item.stateObj;
-  			
-  			
+
+
   			let config = {"type":"custom:hui-entities-card", "entities": [
-  								{"entity":item.entity_id,"secondary_info":"last-changed"}, 
-  								{"type":"custom:hui-history-graph-card","entities":[item.entity_id]}, 
+  								{"entity":item.entity_id,"secondary_info":"last-changed"},
+  								{"type":"custom:hui-history-graph-card","entities":[item.entity_id]},
   								{"type":"custom:hui-logbook-card","entities":[item.entity_id]}
   							]};
   			createCard({"type":"logbook","entities":[item.entity_id]});
   			popUp(item.display_name, config, false, {"box-shadow": "none!important"});
-   			
+
    			setTimeout(()=>{
-   				
+
    				let popup = this.findPopUpCard("hui-entities-card");
-   				
+
   				if(popup){
   					popup.hass = mock_hass;
   					let ha_card = popup.shadowRoot && popup.shadowRoot.querySelector("ha-card");
@@ -825,7 +828,7 @@ class HomeFeedCard extends LitElement {
    							  .shadowRoot
    							  .querySelector('ha-card');
    						graph.style.boxShadow = 'none';
-   						
+
    						let logbook = states.querySelector("div hui-logbook-card")
    							  .shadowRoot
    							  .querySelector('ha-card');
@@ -837,24 +840,24 @@ class HomeFeedCard extends LitElement {
   		else if(item.item_type == "multi_entity" || item.item_type == "calendar_event"){
   			let mock_hass = {};
   			Object.assign(mock_hass, this._hass);
-  			
+
   			let config = {"type":"custom:hui-markdown-card", "content": item.detail, "item": item.item_data};
-  			
+
   			let maxTitleLength = 80;
   			let title = item.display_name;
   			if(title.length > maxTitleLength) title = title.substring(0,maxTitleLength - 3) + "...";
    			popUp(title, config, false);
-   			
+
    			setTimeout(()=>{
-   				
+
    				let popup = this.findPopUpCard("hui-markdown-card");
    				let toolbar = popup.parentElement.parentElement.querySelector("app-toolbar");
-   				
+
    				let size = toolbar.getBoundingClientRect();
    				let width = Math.trunc(size.width);
-   				
+
    				let card = popup && popup.shadowRoot && popup.shadowRoot.querySelector("ha-card");
-  				
+
   				if(card){
   				    card.style.background = "rgba(0,0,0,0)";
   				    card.style.boxShadow = "none";
@@ -862,7 +865,7 @@ class HomeFeedCard extends LitElement {
   					card.style.maxHeight = "75vh";
   					card.style.minWidth = width + "px";
   					card.style.overflow = "auto";
-  					
+
   					let markdownElement = card.querySelector("ha-markdown").shadowRoot.querySelector("ha-markdown-element");
   					if(markdownElement){
   						markdownElement.querySelectorAll("a").forEach(link => {
@@ -876,19 +879,19 @@ class HomeFeedCard extends LitElement {
   		{
   			let notification = item.original_notification;
   			if(!notification.title) notification.title = this.notificationIdToTitle(notification.notification_id);
-  			
+
   			let config = {"type":"custom:home-feed-notification-popup", "notification": notification};
-  			
+
   			popUp(notification.title, config, false);
   		}
   		else
   		{
-  			handleClick(this, this._hass, {"entity":item.entity_id, 
-   				"tap_action":{"action":"more-info"}}, false, false); 
+  			handleClick(this, this._hass, {"entity":item.entity_id,
+   				"tap_action":{"action":"more-info"}}, false, false);
    		}
 	}
-	
-	
+
+
 	_computeTooltip(hass, notification) {
     if (!hass || !notification) {
       return undefined;
@@ -905,7 +908,7 @@ class HomeFeedCard extends LitElement {
   }
 	_buildFeed() {
     	if(!this._hass) return;
-		
+
 		this.getFeedItems().then(items =>
 	  	{
 	  		if(this._config.max_item_count) items.splice(this._config.max_item_count);
@@ -913,11 +916,11 @@ class HomeFeedCard extends LitElement {
 	  		this.requestUpdate();
   		});
 	}
-	
+
 	_renderItem(n) {
 		let compact_mode = this._config.compact_mode === true;
 		let show_icons = this._config.show_icons !== false;
-		
+
 		switch(n.item_type)
 		{
 			case "notification":
@@ -937,50 +940,46 @@ class HomeFeedCard extends LitElement {
 			case "entity_history":
 				var icon = n.icon;
 				let domain = n.entity_id.split('.')[0];
-				
-				if(n.attributes.device_class === "timestamp"){
-					var contentText = `${n.display_name}`;
+
+				if (n.content_template) {
+					var contentText = n.content_template;
+				} else if (n.attributes.device_class === "timestamp"){
+					var contentText = n.display_name;
 					if(!icon) var icon = "mdi:clock-outline";
-				}
-				else{
-					if(n.content_template){
-						var contentText = this.applyTemplate(n, n.content_template);
-					}
-					else{
-						var contentText = `${n.display_name} @ ${n.state}`;
-					}
+				} else {
+					var contentText = `${n.display_name} @ ${n.state}`;
 				}
 				break;
 			case "multi_entity":
 				var icon = n.icon;
-				
-				var contentText = `${n.display_name}`;
+
+				var contentText = n.display_name;
 				break;
 			case "unavailable":
 				var icon = "mdi:alert-circle";
-				
-				var contentText = `${n.display_name}`;
+
+				var contentText = n.display_name;
 				break;
 			default:
 				var icon = "mdi:bell";
 				var contentText = "Unknown Item Type";
 		}
-		
+
 		//if(compact_mode && n.item_type != "notification")
 		//{
 		//	let maxContentLength = 50;
   		//	if(contentText.length > maxContentLength) contentText = contentText.substring(0,maxContentLength - 3) + "...";
-  		//}	
-			
-		if(!n.stateObj && !icon){ 
+  		//}
+
+		if(!n.stateObj && !icon){
 			icon = "mdi:bell";
 		}
-		
+
 		var clickable = false;
 		var contentClass = '';
 
 		let more_info_on_tap = (typeof n.more_info_on_tap !== 'undefined') ? n.more_info_on_tap : this._config.more_info_on_tap;
-		
+
 		if(more_info_on_tap) {
 			switch(n.item_type) {
 				case "entity":
@@ -992,30 +991,30 @@ class HomeFeedCard extends LitElement {
 				case "calendar_event":
 					clickable = !!n.detail;
 					break;
-				
-			}	
+
+			}
 		}
 		if(compact_mode && n.item_type == "notification") clickable = true; // Notifications always clickable in compact mode
-		
+
 		if(clickable){
 			contentClass = "state-card-dialog";
 		}
-		
+
 		var allDay = (n.item_type == "calendar_event" && n.all_day);
-		
+
 		var timeItem;
-		
+
 		if(allDay){
 			let date = n.start.date ? this.moment(n.start.date).startOf('day') : this.moment(n.start).startOf('day');
 			let endDate = (n.end.date ? this.moment(n.end.date).startOf('day') : this.moment(n.end).startOf('day'));
 			// Fix end date for all day events
 			endDate = endDate.add(-1, 'hours').startOf('day');
-			
+
 			let days = Math.abs(date.diff(this.moment().startOf('day'),'days'));
-			
+
 			if(days <= 7){
 				var timeString = getCalendarString(date);
-				
+
 				if(endDate > date) {
       				let endTimeString = getCalendarString(endDate);
       				if(endTimeString == endDate.format("L")){
@@ -1027,7 +1026,7 @@ class HomeFeedCard extends LitElement {
       				}
       				timeString = timeString + " - " + endTimeString;
       			}
-      			
+
 				timeItem = html`<div style="display:block; ${compact_mode ? "float:right" : "clear:both;"}" title="${date.toDate()} - ${endDate.toDate()}">${timeString}</div>`;
 			}
 			else{
@@ -1036,7 +1035,7 @@ class HomeFeedCard extends LitElement {
         			month: "long",
         			day: "numeric",
       			});
-      			
+
       			if(endDate > date) {
       				timeString = timeString + " - " + endDate.toDate().toLocaleDateString(this._hass.language, {
         				year: "numeric",
@@ -1044,21 +1043,21 @@ class HomeFeedCard extends LitElement {
         				day: "numeric",
       				});
       			}
-				
+
 				timeItem = html`<div style="display:block; ${compact_mode ? "float:right" : "clear:both;"}" title="${date.toDate()} - ${endDate.toDate()}">${timeString}</div>`;
 			}
 		}
 		else
 		{
 			let exact_durations = this._config.exact_durations === true;
-				
+
 			if(isNaN(n.timeDifference.value)){
 				timeItem = html`<div style="display:block; ${compact_mode ? "float:right" : "clear:both;"}">${n.timestamp}</div>`;
 			}
 			else if(n.timeDifference.abs < 60 && n.format == "relative" && !exact_durations) {
 				// Time difference less than 1 minute, so use a regular div tag with fixed text.
 				// This avoids the time display refreshing too often shortly before or after an item's timestamp
-				
+
 				if(this._language != "en")
 				{
 					let timeDesc = this._hass.localize("ui.components.relative_time.duration.minute", "count", 1).replace("1", "<1");
@@ -1083,8 +1082,8 @@ class HomeFeedCard extends LitElement {
               				`;
 			}
 		}
-		
-		
+
+
 
 		if(n.item_type == "notification" && !compact_mode){
 			var closeLink = html`<ha-icon icon='mdi:close' .notificationId='${n.notification_id}' @click=${this._handleDismiss}</ha-icon>`;
@@ -1092,13 +1091,13 @@ class HomeFeedCard extends LitElement {
 		else{
 			var closeLink = html``;
 		}
-		
+
 		let stateObj = n.stateObj ? n.stateObj : {"entity_id": "", "state": "unknown", "attributes":{}};
-		//let contentItem = n.item_type == "multi_entity" ? n.item_data : n.stateObj; 
-		
+		//let contentItem = n.item_type == "multi_entity" ? n.item_data : n.stateObj;
+
 		let iconStyle = !show_icons ? "display:none;" : "";
 		let iconClass = this._config.rtl === true ? "item-left rtl" : "item-left";
-		
+
 		return html`
 		<div class="item-container">
 			<div class="${iconClass}" style="${iconStyle}">
@@ -1115,7 +1114,7 @@ class HomeFeedCard extends LitElement {
 		${compact_mode ? html`` : html`<hr style="clear:both;"/>`}
 		`;
 	}
-  	
+
   	itemContent(item, compact_mode, contentText){
   		if(item.item_type == "unavailable"){
   			return html`
@@ -1130,10 +1129,10 @@ class HomeFeedCard extends LitElement {
       if(!this._notificationButton){
       	this._notificationButton = this.rootElement.querySelector("hui-notifications-button");
       }
-      
+
       return this._notificationButton;
     }
-    
+
   	get rootElement() {
       if(!this._root){
       	this.recursiveWalk(document, node => {
@@ -1164,17 +1163,17 @@ class HomeFeedCard extends LitElement {
         node = node.nextSibling;
       }
     }
-    
+
     buildIfReady(){
     	if(!this._hass || !this.moment) return;
 		let notificationsLastUpdate = JSON.parse(localStorage.getItem('home-feed-card-notificationsLastUpdate' + this.cacheId));
-		
+
     	if((!this.loadedNotifications || !notificationsLastUpdate) && this.moment){
     		this.refreshNotifications().then(() => {});
     	}
         this._buildFeed();
     }
-    
+
   	set hass(hass) {
 		this.oldStates = this._hass != null ? this._hass.states : {};
 		this._hass = hass;
@@ -1187,27 +1186,27 @@ class HomeFeedCard extends LitElement {
     			});
     		}, 2000);
     	}
-    	
+
     	this.shadowRoot.querySelectorAll("ha-card .header-footer > *").forEach(
       		(element) => {
         		element.hass = hass;
       		}
     	);
-    	
+
 		this.buildIfReady();
   	}
-  	
+
   	getCardSize() {
   		if (!this._config || !this.feedContent) {
       		return 0;
     	}
     	// +1 for the header
     	let size = (this._config.title ? 1 : 0) + (this.feedContent.length || 1);
-    	
+
     	if(this._config.header) size += 1;
-    	
+
     	if(this._config.footer) size += 1;
-    	
+
     	return size;
   	}
 }
