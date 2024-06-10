@@ -226,7 +226,7 @@ class HomeFeedCard extends LitElement {
 					${!this._config.title
 					? html``
 					: html`
-						  <div id="header" class="card-header">
+						<div id="header" class="card-header">
 						  <div class="name">${this._config.title}</div>
 						</div>
 					  `}
@@ -717,7 +717,7 @@ class HomeFeedCard extends LitElement {
 				item.icon = await this.renderTemplate(item.icon, { entity: item.entity, attribute: item.attribute });
 			}
 			if (item.hasOwnProperty('condition')) {
-				item.condition = (await this.renderTemplate(item.condition, { entity: item.entity })) === 'True';
+				item.condition = (await this.renderTemplate(item.condition, { entity: item.entity, attribute: item.attribute })) === 'True';
 			} else {
 				item.condition = true;
 			}
